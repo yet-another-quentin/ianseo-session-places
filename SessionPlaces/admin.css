@@ -1,0 +1,32 @@
+/* Session places — admin page, scoped to #sp-admin so the rest of IANSEO is untouched */
+#sp-admin { max-width: 1200px; margin: 12px auto; padding: 0 12px; font-size: 13px; color: #1d1d1b; }
+#sp-admin h2 { margin: 0; font-size: 18px; }
+#sp-admin h3 { margin: 0 0 10px; font-size: 15px; }
+#sp-admin .sp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+#sp-admin .sp-upd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-left: auto; }
+#sp-admin .sp-box { background: #fff; border: 1px solid #d8d6d0; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+#sp-admin .sp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 8px 0; }
+#sp-admin .sp-chk { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+#sp-admin .sp-link-row label { min-width: 12em; color: #555; }
+#sp-admin .sp-link-row input { flex: 1; min-width: 280px; }
+#sp-admin select, #sp-admin input[type=text], #sp-admin input[type=number] {
+  font: inherit; padding: 3px 6px; border: 1px solid #c9c6be; border-radius: 4px; background: #fff; }
+#sp-admin .sp-target { width: 4.5em; }
+#sp-admin button { font: inherit; padding: 4px 10px; border: 1px solid #2f6f4f; border-radius: 4px; background: #fff; color: #2f6f4f; cursor: pointer; }
+#sp-admin button:disabled { opacity: .5; cursor: default; }
+#sp-admin button.sp-primary { background: #2f6f4f; color: #fff; padding: 6px 14px; font-weight: 600; }
+#sp-admin button.sp-linkbtn { border: 0; padding: 0 2px; text-decoration: underline; background: none; }
+#sp-admin .sp-status { display: inline-block; margin-left: 6px; padding: 2px 10px; border-radius: 999px; background: #f3e0de; color: #b3261e; font-size: 12px; }
+#sp-admin .sp-status.sp-on { background: #e1efe6; color: #2f6f4f; }
+#sp-admin .sp-scroll { overflow-x: auto; }
+#sp-admin .sp-table { border-collapse: collapse; margin: 6px 0; }
+#sp-admin .sp-table th, #sp-admin .sp-table td { border-bottom: 1px solid #eceae4; padding: 4px 8px; text-align: left; vertical-align: middle; }
+#sp-admin .sp-table th { background: #f6f5f1; }
+#sp-admin .sp-full td { color: #b3261e; }
+#sp-admin .sp-preview { display: block; max-width: 540px; width: 100%; height: auto; border: 1px solid #d8d6d0; border-radius: 6px; }
+#sp-admin .sp-warn-text { color: #9a6700; }
+#sp-admin .sp-muted { color: #6b6a66; }
+#sp-admin .sp-small { font-size: 12px; }
+#sp-admin .sp-alert { padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; }
+#sp-admin .sp-err { background: #fdecea; color: #b3261e; }
+#sp-admin .sp-ok { background: #e1efe6; color: #2f6f4f; }
