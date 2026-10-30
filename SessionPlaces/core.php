@@ -17,11 +17,19 @@ function sp_valid_code($c) {
 	return $c;
 }
 
-// The public query string must be exactly "c=<code>", checked on the raw string: any other parameter, array,
-// duplicate (PHP would keep the last one) or encoded character is refused.
+const SP_FORMATS = array('full', 'compact');
+
+// The public query string must be exactly "c=<code>" or "c=<code>&f=compact", checked on the raw string: any other
+// parameter or value, array, duplicate (PHP would keep the last one) or encoded character is refused.
 function sp_valid_query($queryString, $get) {
-	return is_string($queryString) and preg_match('/^c=[A-Za-z0-9_.-]{1,8}$/D', $queryString)
-		and is_array($get) and array_keys($get) === array('c') and is_string($get['c']);
+	if (!is_string($queryString) or !preg_match('/^c=[A-Za-z0-9_.-]{1,8}(&f=compact)?$/D', $queryString) or !is_array($get)) return false;
+	$keys = array_keys($get);
+	return is_string($get['c'] ?? null) and ($keys === array('c') or ($keys === array('c', 'f') and ($get['f'] ?? null) === 'compact'));
+}
+
+// Format of the image from a checked query (or the preview's): 'compact' (no header, no logo), else 'full'.
+function sp_format($f) {
+	return $f === 'compact' ? 'compact' : 'full';
 }
 
 // Text drawn in the image (names entered in IANSEO): valid UTF-8, no control characters, one line, limited length.

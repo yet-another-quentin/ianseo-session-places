@@ -242,7 +242,8 @@ function sp_selfreg_quotas($TourId) {
  * Any change of an input — an entry, a request, a setting, the competition's name or logo, the module version —
  * changes the hash, hence the cached file and the ETag.
  */
-function sp_data($TourId) {
+function sp_data($TourId, $format = 'full') {
+	$format = sp_format($format);
 	$tour = sp_tour($TourId);
 	if (!$tour) return null;
 	$sessions = sp_sessions($TourId);
@@ -258,8 +259,8 @@ function sp_data($TourId) {
 	$head = array('name' => (string)$tour->ToName, 'where' => (string)$tour->ToWhere, 'from' => (string)$tour->ToWhenFrom,
 		'to' => (string)$tour->ToWhenTo, 'logo' => intval($tour->ImgL));
 	$hash = sp_fingerprint(array(sp_version_info()['version'], intval(@filemtime(__DIR__ . '/render.php')),
-		$head, $settings['lang'], $places));
-	return array('tourId' => intval($tour->ToId), 'code' => (string)$tour->ToCode, 'head' => $head,
+		$format, $head, $settings['lang'], $places));
+	return array('tourId' => intval($tour->ToId), 'format' => $format, 'code' => (string)$tour->ToCode, 'head' => $head,
 		'lang' => $settings['lang'], 'settings' => $settings, 'sessions' => $sessions, 'places' => $places,
 		'labels' => sp_distance_labels($groups), 'quotas' => $quotas, 'divNames' => $divNames, 'hash' => $hash);
 }
@@ -290,7 +291,7 @@ function sp_cache_dir() {
 /**
  * PNG of the data (sp_data()): read from the cache when its fingerprint is known, drawn otherwise. One drawing at a
  * time per competition (flock); the file is written aside then renamed, and the previous image of the competition
- * removed, so the cache holds at most one file per competition.
+ * removed, so the cache holds at most one file per competition and format.
  */
 function sp_png($data) {
 	require_once(__DIR__ . '/render.php');
@@ -298,7 +299,8 @@ function sp_png($data) {
 	if (!$dir) return sp_render($data);
 	$id = intval($data['tourId']);
 	$hash = preg_replace('/[^0-9a-f]/', '', $data['hash']);
-	$file = $dir . DIRECTORY_SEPARATOR . $id . '-' . $hash . '.png';
+	$prefix = $dir . DIRECTORY_SEPARATOR . $id . '-' . sp_format($data['format']) . '-';
+	$file = $prefix . $hash . '.png';
 	if (is_file($file) and ($png = @file_get_contents($file)) !== false and $png !== '') return $png;
 
 	$lock = @fopen($dir . DIRECTORY_SEPARATOR . $id . '.lock', 'c');
@@ -310,7 +312,7 @@ function sp_png($data) {
 		$tmp = @tempnam($dir, 'sp');
 		if ($tmp and @file_put_contents($tmp, $png) === strlen($png) and @rename($tmp, $file)) {
 			@chmod($file, 0600);
-			foreach (glob($dir . DIRECTORY_SEPARATOR . $id . '-*.png') ?: array() as $old) {
+			foreach (glob($prefix . '*.png') ?: array() as $old) {
 				if ($old !== $file) @unlink($old);
 			}
 		} elseif ($tmp) {

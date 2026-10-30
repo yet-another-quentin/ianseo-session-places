@@ -18,7 +18,8 @@
     return t(key, p);
   };
 
-  const state = { draft: null, busy: false, flash: '', flashErr: false, channel: ctx.channel || 'stable', update: null, updateMsg: '' };
+  // format: which address, HTML code and preview are shown (both formats are always served, nothing is saved)
+  const state = { format: 'full', draft: null, busy: false, flash: '', flashErr: false, channel: ctx.channel || 'stable', update: null, updateMsg: '' };
 
   function freshDraft() {
     const s = ctx.settings;
@@ -130,7 +131,8 @@
   // ---------- rendering ----------
 
   const sessionLabel = s => t('sessions.label', { n: s.order }) + (s.name ? ' – ' + s.name : '');
-  const embedCode = () => `<img src="${esc(ctx.publicUrl)}" alt="${esc(t('image.alt'))}" style="max-width:100%;height:auto">`;
+  const publicUrl = () => ctx.publicUrl + (state.format === 'compact' ? '&f=compact' : '');
+  const embedCode = () => `<img src="${esc(publicUrl())}" alt="${esc(t('image.alt'))}" style="max-width:100%;height:auto">`;
 
   function render() {
     const focus = document.activeElement && document.activeElement.id;
@@ -179,8 +181,11 @@
       <div class="sp-row"><label>${th('image.lang')} <select id="sp-lang">
         ${['fr', 'en'].map(l => `<option value="${l}" ${d.lang === l ? 'selected' : ''}>${th('image.lang.' + l)}</option>`).join('')}
       </select></label></div>
+      <div class="sp-row"><label>${th('image.format')} <select id="sp-format">
+        ${['full', 'compact'].map(f => `<option value="${f}" ${state.format === f ? 'selected' : ''}>${th('image.format.' + f)}</option>`).join('')}
+      </select></label></div>
       <div class="sp-row sp-link-row"><label for="sp-url">${th('image.url')}</label>
-        <input type="text" id="sp-url" readonly value="${esc(ctx.publicUrl)}">
+        <input type="text" id="sp-url" readonly value="${esc(publicUrl())}">
         <button type="button" id="sp-copy-url">${th('image.copy')}</button></div>
       <div class="sp-row sp-link-row"><label for="sp-embed">${th('image.embed')}</label>
         <input type="text" id="sp-embed" readonly value="${esc(embedCode())}">
@@ -243,7 +248,7 @@
     return `<div class="sp-box">
       <h3>${th('preview.title')}</h3>
       <p class="sp-muted sp-small">${th('preview.help')}</p>
-      <img class="sp-preview" src="preview.php?v=${esc(ctx.hash)}" alt="${esc(t('image.alt'))}">
+      <img class="sp-preview" src="preview.php?v=${esc(ctx.hash)}${state.format === 'compact' ? '&amp;f=compact' : ''}" alt="${esc(t('image.alt'))}">
     </div>`;
   }
 
@@ -256,6 +261,7 @@
 
     on('sp-public', 'change', e => { d.public = e.target.checked; render(); });
     on('sp-lang', 'change', e => { d.lang = e.target.value; render(); });
+    on('sp-format', 'change', e => { state.format = e.target.value === 'compact' ? 'compact' : 'full'; render(); });
     on('sp-divisions', 'change', e => { d.divisions = e.target.checked; render(); });
     app.querySelectorAll('.sp-show').forEach(el => el.addEventListener('change', () => {
       const n = parseInt(el.value, 10);

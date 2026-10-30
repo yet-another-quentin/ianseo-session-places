@@ -1,7 +1,7 @@
 <?php
 /*
  * Session places — preview of the image for the admin page (open competition, same rights as the page), shown
- * even when the public image is off. Same drawing and cache as image.php.
+ * even when the public image is off (?f=compact: compact format). Same drawing and cache as image.php.
  */
 require_once(dirname(__FILE__, 4) . '/config.php');
 require_once(__DIR__ . '/lib.php');
@@ -9,7 +9,7 @@ require_once(__DIR__ . '/lib.php');
 header('X-Content-Type-Options: nosniff');
 header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox");
 if (!CheckTourSession() or !hasFullACL(AclParticipants, 'pAdvancedEntries', AclReadWrite)
-	or !function_exists('imagecreatetruecolor') or !($data = sp_data($_SESSION['TourId']))) {
+	or !function_exists('imagecreatetruecolor') or !($data = sp_data($_SESSION['TourId'], $_GET['f'] ?? null))) {
 	http_response_code(404);
 	exit;
 }

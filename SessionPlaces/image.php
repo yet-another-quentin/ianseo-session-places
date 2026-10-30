@@ -1,9 +1,11 @@
 <?php
 /*
- * Session places — PUBLIC image of the places left per session: image.php?c=<ToCode>
+ * Session places — PUBLIC image of the places left per session: image.php?c=<ToCode>, or
+ * image.php?c=<ToCode>&f=compact (no header).
  *
  * The only public file of the module. Served only for competitions whose organiser switched the image on.
- * - The query is checked BEFORE IANSEO starts: exactly one parameter "c", a short code of letters and digits.
+ * - The query is checked BEFORE IANSEO starts: exactly "c", a short code of letters and digits, optionally followed
+ *   by the fixed "&f=compact".
  *   IANSEO's own GET hooks (language, debug…) are never reached, and the code is only used in one SQL query.
  * - Malformed code, unknown competition, image switched off: the same empty 404, after the same queries.
  * - No session cookie, no CORS header, nothing of the request echoed back.
@@ -40,6 +42,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? '';
 if ($method !== 'GET' and $method !== 'HEAD') sp_public_end(405, array('Allow: GET, HEAD'));
 if (!sp_valid_query($_SERVER['QUERY_STRING'] ?? '', $_GET)) sp_public_end(400);
 $code = sp_valid_code($_GET['c']);
+$format = sp_format($_GET['f'] ?? null);
 
 session_set_save_handler(new SpNoSession(), false);
 ini_set('session.use_cookies', '0');
@@ -58,7 +61,7 @@ $TourId = sp_tour_id($code);
 $settings = sp_settings($TourId);
 if (!$TourId or !$settings['public'] or !function_exists('imagecreatetruecolor')) sp_public_end(404);
 
-$data = sp_data($TourId);
+$data = sp_data($TourId, $format);
 if (!$data) sp_public_end(404);
 $etag = sp_etag($data['hash']);
 // short freshness, then a revalidation that costs a 304 while nothing changes

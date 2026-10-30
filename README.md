@@ -8,7 +8,8 @@ IANSEO module that publishes an image of the places left in each session of a co
 - **Online registration**: with the [SelfRegistration](https://github.com/yet-another-quentin/ianseo-self-registration) module, pending requests hold their places, and the image can show the places left per bow type when quotas are set there.
 - **Per distance** (optional): IANSEO only assigns targets after registration. The organiser enters how many targets each distance will use in each session (e.g. 70 m: 10 targets, 50 m: 6). The image then shows the places left per distance, from the distances of each category (Competition › Distances).
 - **Always up to date, drawn only when needed**: the image is redrawn only when an entry, a pending request, a setting or the competition details change. Otherwise it is served from a cache, and browsers that already have it get a "not modified" answer.
-- **Safe public address**: `…/Modules/Custom/SessionPlaces/image.php?c=<competition code>` takes no other parameter. Unknown or unpublished competitions get the same empty answer, and the image holds no personal data.
+- **Two formats**: full (logo, name, dates and town of the competition, a card per session) or compact (`&f=compact`: a narrow list of the sessions only, to fit in a sidebar or next to a text).
+- **Safe public address**: `…/Modules/Custom/SessionPlaces/image.php?c=<competition code>` takes no other parameter than `&f=compact`. Unknown or unpublished competitions get the same empty answer, and the image holds no personal data.
 - **Language**: French or English, chosen per competition.
 
 Tested with IANSEO 2025-02-10 (FR rules).
@@ -32,7 +33,7 @@ IANSEO updates never touch `Modules/Custom/`, so the module stays installed.
 2. **Bow types**: tick "Show the places left per bow type" to add the quotas of the SelfRegistration module.
 3. **Targets per distance** (optional): enter the targets of each distance in each session. Empty = not shown.
 4. **Public image**: tick "Publish the image", choose its language, then save. The preview shows the saved settings, even before publishing.
-5. **Share** the address of the image, or paste the HTML code given on the page into the club's website.
+5. **Share** the address of the image (choose the format first), or paste the HTML code given on the page into the club's website.
 
 The image is cached by browsers for one minute, then checked again: an embedded image follows the registrations within a minute.
 
@@ -59,7 +60,7 @@ location = /Modules/Custom/SessionPlaces/image.php {
 
 ### What the public address accepts
 
-- `GET` or `HEAD` only (otherwise 405), and exactly `?c=<code>`: 1 to 8 letters, digits, `_`, `-` or `.`, checked on the raw query string **before IANSEO starts**. Anything else (other parameter, repeated `c`, array, encoded character) gets 400, so IANSEO's own URL hooks (language, debug…) can never be reached through it.
+- `GET` or `HEAD` only (otherwise 405), and exactly `?c=<code>` or `?c=<code>&f=compact`: 1 to 8 letters, digits, `_`, `-` or `.`, checked on the raw query string **before IANSEO starts**. Anything else (other parameter or value, other order, repeated parameter, array, encoded character) gets 400, so IANSEO's own URL hooks (language, debug…) can never be reached through it.
 - Malformed code, unknown competition, image not published: the same empty 404.
 - No session cookie, no `Access-Control-Allow-Origin`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`. Nothing of the request is echoed back.
 
@@ -67,7 +68,7 @@ location = /Modules/Custom/SessionPlaces/image.php {
 
 - The image's data are summed up in a fingerprint: places per session, bow type and category, settings, sessions, competition name, dates, town and logo, module version. A few `count(*)` queries, without drawing.
 - The fingerprint is the `ETag`: a browser or proxy that has the image gets a `304 Not Modified`.
-- On the server, the PNG is kept in the system's temporary folder (`ianseo-sessionplaces-…`, readable by the web server only, at most one file per competition). It is drawn only for a new fingerprint, by one request at a time.
+- On the server, the PNG is kept in the system's temporary folder (`ianseo-sessionplaces-…`, readable by the web server only, at most one file per competition and format). It is drawn only for a new fingerprint, by one request at a time.
 
 ## Development
 
@@ -96,7 +97,8 @@ Module IANSEO qui publie une image des places restantes à chaque départ d'une 
 - **Inscription en ligne** : avec le module [SelfRegistration](https://github.com/yet-another-quentin/ianseo-self-registration), les demandes en attente réservent leurs places, et l'image peut afficher les places restantes par arme quand des quotas y sont fixés.
 - **Par distance** (facultatif) : IANSEO n'attribue les cibles qu'après les inscriptions. L'organisateur indique combien de cibles chaque distance occupera à chaque départ (ex. 70 m : 10 cibles, 50 m : 6). L'image affiche alors les places restantes par distance, d'après les distances de chaque catégorie (Compétition › Distances).
 - **Toujours à jour, dessinée seulement si besoin** : l'image n'est redessinée que quand une inscription, une demande en attente, un réglage ou les informations de la compétition changent. Sinon elle est servie depuis un cache, et un navigateur qui l'a déjà reçoit une réponse « non modifiée ».
-- **Adresse publique sûre** : `…/Modules/Custom/SessionPlaces/image.php?c=<code de la compétition>` n'accepte aucun autre paramètre. Une compétition inconnue ou non publiée reçoit la même réponse vide, et l'image ne contient aucune donnée personnelle.
+- **Deux formats** : complet (logo, nom, dates et ville de la compétition, une carte par départ) ou compact (`&f=compact` : une liste étroite des seuls départs, pour une colonne latérale ou à côté d'un texte).
+- **Adresse publique sûre** : `…/Modules/Custom/SessionPlaces/image.php?c=<code de la compétition>` n'accepte aucun autre paramètre que `&f=compact`. Une compétition inconnue ou non publiée reçoit la même réponse vide, et l'image ne contient aucune donnée personnelle.
 - **Langue** : français ou anglais, au choix pour chaque compétition.
 
 ### Prérequis
@@ -116,7 +118,7 @@ Module IANSEO qui publie une image des places restantes à chaque départ d'une 
 2. **Armes** : cocher « Afficher les places restantes par arme » pour ajouter les quotas du module SelfRegistration.
 3. **Cibles par distance** (facultatif) : indiquer les cibles de chaque distance à chaque départ. Vide = non affiché.
 4. **Image publique** : cocher « Publier l'image », choisir sa langue, puis enregistrer. L'aperçu montre les réglages enregistrés, même avant la publication.
-5. **Diffuser** l'adresse de l'image, ou coller le code HTML donné sur la page dans le site du club.
+5. **Diffuser** l'adresse de l'image (après avoir choisi le format), ou coller le code HTML donné sur la page dans le site du club.
 
 Les navigateurs gardent l'image une minute, puis vérifient si elle a changé : une image intégrée à un site suit les inscriptions à la minute près.
 
@@ -130,4 +132,4 @@ L'image est le seul fichier public du module. Si IANSEO est protégé par un rev
 
 - Les données de l'image sont résumées par une empreinte : places par départ, arme et catégorie, réglages, départs, nom, dates, ville et logo de la compétition, version du module. Quelques requêtes `count(*)`, sans dessin.
 - L'empreinte sert d'`ETag` : un navigateur ou un proxy qui a déjà l'image reçoit un `304 Not Modified`.
-- Sur le serveur, le PNG est gardé dans le dossier temporaire du système (`ianseo-sessionplaces-…`, lisible par le seul serveur web, au plus un fichier par compétition). Il n'est dessiné que pour une nouvelle empreinte, par une seule requête à la fois.
+- Sur le serveur, le PNG est gardé dans le dossier temporaire du système (`ianseo-sessionplaces-…`, lisible par le seul serveur web, au plus un fichier par compétition et par format). Il n'est dessiné que pour une nouvelle empreinte, par une seule requête à la fois.

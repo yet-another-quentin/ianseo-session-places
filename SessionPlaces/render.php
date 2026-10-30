@@ -1,24 +1,31 @@
 <?php
 /*
  * Session places — drawing of the PNG with GD. Only called by sp_png() (lib.php) when the image is not cached.
- * Drawn at twice the size then reduced, for smooth shapes. The layout runs twice: once without an image to know the
+ * Two formats: 'full' (header with the logo and the competition, a card per session, footer) and 'compact' (a narrow
+ * list of the sessions, nothing else). Drawn at twice the size then reduced, for smooth shapes. The layout runs twice: once without an image to know the
  * height, then for real. Fonts: IANSEO's own (Roboto, else FreeSans, in Common/tcpdf/fonts); without FreeType,
  * GD's built-in font with ASCII text.
  */
 
 const SP_W = 1080;   // width of the image
+const SP_W_COMPACT = 640;
 const SP_SS = 2;     // supersampling
 
 function sp_render($data) {
 	$fonts = sp_fonts();
-	$logo = $data['head']['logo'] ? sp_tour_logo($data['tourId']) : null;
-	$h = sp_layout($data, null, $fonts, $logo);
-	$im = imagecreatetruecolor(SP_W * SP_SS, $h * SP_SS);
+	$compact = $data['format'] === 'compact';
+	$W = $compact ? SP_W_COMPACT : SP_W;
+	$logo = !$compact && $data['head']['logo'] ? sp_tour_logo($data['tourId']) : null;
+	$layout = function ($im) use ($compact, $data, $fonts, $logo) {
+		return $compact ? sp_layout_compact($data, $im, $fonts) : sp_layout($data, $im, $fonts, $logo);
+	};
+	$h = $layout(null);
+	$im = imagecreatetruecolor($W * SP_SS, $h * SP_SS);
 	imagealphablending($im, true);
-	sp_layout($data, $im, $fonts, $logo);
+	$layout($im);
 	if ($logo) imagedestroy($logo);
-	$out = imagecreatetruecolor(SP_W, $h);
-	imagecopyresampled($out, $im, 0, 0, 0, 0, SP_W, $h, SP_W * SP_SS, $h * SP_SS);
+	$out = imagecreatetruecolor($W, $h);
+	imagecopyresampled($out, $im, 0, 0, 0, 0, $W, $h, $W * SP_SS, $h * SP_SS);
 	imagedestroy($im);
 	ob_start();
 	imagepng($out, null, 9);
@@ -36,15 +43,12 @@ function sp_fonts() {
 }
 
 /**
- * Lays out (and draws, when $im is given) the image; returns its height at scale 1.
- * Coordinates are at scale 1 and multiplied by SP_SS when drawing.
+ * Colours and drawing helpers: $width(text, size, bold), $text(x, baseline, text, size, colour, bold, align),
+ * $box(x, y, w, h, radius, colour). Coordinates and sizes at scale 1, multiplied by SP_SS when drawing; without
+ * $im, nothing is drawn (measuring pass).
  */
-function sp_layout($data, $im, $fonts, $logo) {
-	$lang = $data['lang'];
+function sp_tools($im, $fonts) {
 	$S = SP_SS;
-	$M = 56;          // outer margin
-	$P = 32;          // card padding
-	$W = SP_W;
 	$col = array();
 	foreach (array('bg' => 0xf4f2ec, 'card' => 0xffffff, 'line' => 0xdedbd3, 'text' => 0x1d1d1b, 'muted' => 0x6b6a66,
 		'green' => 0x2f6f4f, 'greenBg' => 0xe1efe6, 'orange' => 0xa35f00, 'orangeBg' => 0xfbefd9, 'red' => 0xb3261e,
@@ -70,6 +74,19 @@ function sp_layout($data, $im, $fonts, $logo) {
 	$box = function ($x, $y, $w, $h, $r, $color) use ($im, $S) {
 		if ($im) sp_round_rect($im, $x * $S, $y * $S, $w * $S, $h * $S, $r * $S, $color);
 	};
+	return array($col, $width, $text, $box);
+}
+
+/**
+ * Lays out (and draws, when $im is given) the full image; returns its height at scale 1.
+ */
+function sp_layout($data, $im, $fonts, $logo) {
+	$lang = $data['lang'];
+	$S = SP_SS;
+	$M = 56;          // outer margin
+	$P = 32;          // card padding
+	$W = SP_W;
+	list($col, $width, $text, $box) = sp_tools($im, $fonts);
 
 	$y = $M;
 	if ($im) imagefilledrectangle($im, 0, 0, imagesx($im), imagesy($im), $col['bg']);
@@ -125,6 +142,89 @@ function sp_layout($data, $im, $fonts, $logo) {
 	// ----- footer -----
 	$text($M, $y + 22, sp_img_t($lang, 'updated', array('date' => date('d/m/Y'), 'time' => date('H:i'))), 13, $col['muted']);
 	return intval($y + 22 + $M - 16);
+}
+
+/**
+ * Compact image: one line per session (name, places left), the date below, a thin fill bar and the places per bow
+ * type and distance as small chips. No header, logo nor footer. Returns the height at scale 1.
+ */
+function sp_layout_compact($data, $im, $fonts) {
+	$lang = $data['lang'];
+	$W = SP_W_COMPACT;
+	$P = 20;          // padding
+	list($col, $width, $text, $box) = sp_tools($im, $fonts);
+	if ($im) {
+		imagefilledrectangle($im, 0, 0, imagesx($im), imagesy($im), $col['line']);
+		imagefilledrectangle($im, SP_SS, SP_SS, imagesx($im) - SP_SS - 1, imagesy($im) - SP_SS - 1, $col['card']);
+	}
+	$x = $P;
+	$w = $W - 2 * $P;
+	$y = 0;
+	if (!$data['places']) {
+		$text($x, 38, sp_img_t($lang, 'none'), 15, $col['muted']);
+		return 60;
+	}
+	foreach ($data['places'] as $i => $s) {
+		if ($i > 0 and $im) imagefilledrectangle($im, $x * SP_SS, $y * SP_SS, ($x + $w) * SP_SS - 1, $y * SP_SS + 1, $col['line']);
+		$y += 14;
+		$full = $s['free'] <= 0;
+		$tone = $full ? 'red' : ($s['free'] <= max(2, intval($s['capacity'] / 10)) ? 'orange' : 'green');
+
+		// right: "12 places left" or FULL
+		if ($full) {
+			$rw = $width(sp_img_t($lang, 'full'), 17, true);
+			$text($x + $w, $y + 22, sp_img_t($lang, 'full'), 17, $col['red'], true, 'right');
+		} else {
+			$label = sp_img_t($lang, $s['free'] === 1 ? 'free.1' : 'free.n');
+			$lw = $width($label, 13);
+			$rw = $lw + 6 + $width((string)$s['free'], 20, true);
+			$text($x + $w, $y + 22, $label, 13, $col['muted'], false, 'right');
+			$text($x + $w - $lw - 6, $y + 22, (string)$s['free'], 20, $col[$tone], true, 'right');
+		}
+
+		// left: name (or "Session N"), then "Session N · day date · time"
+		$tw = $w - $rw - 16;
+		$name = sp_clean_text($s['name'], 60);
+		$title = $name !== '' ? $name : sp_img_t($lang, 'session', array('n' => $s['order']));
+		$text($x, $y + 22, sp_wrap($title, $tw, function ($t) use ($width) { return $width($t, 16, true); }, 1)[0] ?? '', 16, $col['text'], true);
+		$y += 30;
+		$when = array_filter(array($name !== '' ? sp_img_t($lang, 'session', array('n' => $s['order'])) : '', sp_format_start($s['start'], $lang)));
+		if ($when) {
+			$text($x, $y + 16, sp_wrap(implode(' · ', $when), $tw, function ($t) use ($width) { return $width($t, 12); }, 1)[0] ?? '', 12, $col['muted']);
+			$y += 24;
+		}
+
+		// thin fill bar
+		$y += 4;
+		$ratio = $s['capacity'] > 0 ? min(1, $s['used'] / $s['capacity']) : 1;
+		$box($x, $y, $w, 6, 3, $col['bar']);
+		if ($ratio > 0) $box($x, $y, max(6, $w * $ratio), 6, 3, $col[$tone]);
+		$y += 6;
+
+		// chips per bow type then per distance, on as many lines as needed
+		$chips = array();
+		foreach ($s['divisions'] as $d) $chips[] = array(sp_clean_text($d['name'], 30), $d['free']);
+		foreach ($s['distances'] as $d) $chips[] = array($d['label'], $d['free']);
+		if ($chips) {
+			$y += 10;
+			$cx = $x;
+			foreach ($chips as $chip) {
+				$t = $chip[0] . ' · ' . ($chip[1] > 0 ? $chip[1] : sp_img_t($lang, 'chipFull'));
+				$cwid = $width($t, 12, true) + 20;
+				if ($cx > $x and $cx + $cwid > $x + $w) {
+					$cx = $x;
+					$y += 30;
+				}
+				$c = $chip[1] > 0 ? 'green' : 'red';
+				$box($cx, $y, $cwid, 24, 12, $col[$c . 'Bg']);
+				$text($cx + 10, $y + 17, $t, 12, $col[$c], true);
+				$cx += $cwid + 6;
+			}
+			$y += 24;
+		}
+		$y += 14;
+	}
+	return intval($y);
 }
 
 /**

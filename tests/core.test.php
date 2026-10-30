@@ -40,6 +40,17 @@ check('query empty', sp_valid_query('', array()), false);
 check('query missing c', sp_valid_query('d=TEST26', array('d' => 'TEST26')), false);
 check('query too long', sp_valid_query('c=ABCDEFGHI', array('c' => 'ABCDEFGHI')), false);
 check('query not a string', sp_valid_query(null, array('c' => 'TEST26')), false);
+check('query compact', sp_valid_query('c=TEST26&f=compact', array('c' => 'TEST26', 'f' => 'compact')), true);
+check('query other format', sp_valid_query('c=TEST26&f=full', array('c' => 'TEST26', 'f' => 'full')), false);
+check('query format first', sp_valid_query('f=compact&c=TEST26', array('f' => 'compact', 'c' => 'TEST26')), false);
+check('query format empty', sp_valid_query('c=TEST26&f=', array('c' => 'TEST26', 'f' => '')), false);
+check('query format array', sp_valid_query('c=TEST26&f[]=compact', array('c' => 'TEST26', 'f' => array('compact'))), false);
+check('query format duplicate', sp_valid_query('c=TEST26&f=compact&f=compact', array('c' => 'TEST26', 'f' => 'compact')), false);
+check('query format then other', sp_valid_query('c=TEST26&f=compact&x=1', array('c' => 'TEST26', 'f' => 'compact', 'x' => '1')), false);
+check('query format mismatch with $_GET', sp_valid_query('c=TEST26&f=compact', array('c' => 'TEST26', 'f' => 'x')), false);
+check('format compact', sp_format('compact'), 'compact');
+check('format default', sp_format(null), 'full');
+check('format other', sp_format(array('compact')), 'full');
 
 // ---------- texts ----------
 check('clean control chars', sp_clean_text("Tir\x00 en\tsalle\r\n"), 'Tir en salle');

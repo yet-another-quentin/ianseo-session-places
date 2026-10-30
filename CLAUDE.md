@@ -30,7 +30,7 @@ cd dev && IANSEO_DIR=/path/to/copy docker compose up -d --build && IANSEO_DIR=/p
 
 In `SessionPlaces/`:
 - `core.php`: pure logic, tested by `tests/core.test.php`:
-  - `sp_valid_query()` / `sp_valid_code()`: the public parameter (see Security);
+  - `sp_valid_query()` / `sp_valid_code()` / `sp_format()`: the public parameters (see Security);
   - `sp_like()`: MySQL LIKE in PHP, to match `div+class` with `TournamentDistances.TdClasses` (first match, table order), also for SelfRegistration rows (module table: no SQL join on string columns, collations may differ);
   - `sp_distance_label()`: label from the metres `TdDist1…` ("70 m"), else from the names without IANSEO's `-1`/`-2` suffixes. FR rules name distances `70m-1`, `70m-2`;
   - `sp_clean_settings()`: settings cleaned against existing sessions and distance labels, for reading and saving;
@@ -39,9 +39,9 @@ In `SessionPlaces/`:
 - `lib.php`: database access, parameters, `sp_data()`, cache, admin context, self-update (same mechanism as the sister modules, prefix `sp_`).
   - Taken places (`sp_usage()`): entries `EnAthlete=1` with `QuSession>0` (any status, like IANSEO's CheckSession.php) + SelfRegistration requests with `SrStatus=0`. Waiting list (3) takes no place, validated (1) counts through its entry.
   - `sp_data()` returns the places and their fingerprint. The fingerprint covers everything drawn (places, head of the competition, logo size, language), the module version and `render.php`'s mtime. **Anything new drawn in the image must be part of the fingerprint**, or the cache serves stale images.
-- `render.php`: GD drawing, at 2× then reduced. `sp_layout()` runs twice (measure, then draw); `sp_card()` is measured with no-op drawing closures. IANSEO's fonts (`Common/tcpdf/fonts/Roboto-*.ttf`, else FreeSans), GD built-in font as last resort. The footer time is the drawing time (= last change).
+- `render.php`: GD drawing, at 2× then reduced. Two formats (`$data['format']`, part of the fingerprint): `full` (`sp_layout()`, 1080 px: header with logo, cards, footer) and `compact` (`sp_layout_compact()`, 640 px: sessions only). Both share `sp_tools()` (colours, text and box helpers) and run twice (measure, then draw); `sp_card()` is measured with no-op drawing closures. IANSEO's fonts (`Common/tcpdf/fonts/Roboto-*.ttf`, else FreeSans), GD built-in font as last resort. The footer time is the drawing time (= last change).
 - `image.php`: the **only public file** (see Security).
-- `preview.php`: same image for the admin page (session + rights), even when unpublished; `?v=<hash>` only busts the browser cache.
+- `preview.php`: same image for the admin page (session + rights), even when unpublished; `?v=<hash>` only busts the browser cache, `&f=compact` for the compact format. The format is chosen on the admin page (address, HTML code, preview) and is not saved: both are always served.
 - `index.php` + `admin.js` + `admin.css` + `api.php`: admin page (IANSEO template, `window.SP_CONTEXT`).
   - Rights: `AclParticipants`/`pAdvancedEntries` ReadWrite, like SelfRegistration. Updates require `AclRoot`.
   - `api.php` only accepts JSON bodies (a cross-site form cannot send them).
@@ -50,7 +50,7 @@ In `SessionPlaces/`:
 
 ## Security of image.php
 
-- Method GET/HEAD (else 405), then `sp_valid_query()` on the **raw** `QUERY_STRING`: exactly `c=[A-Za-z0-9_.-]{1,8}` (else 400). Checked before IANSEO's `config.php`, whose `Globals.inc.php`/`config.php` react to GET parameters (`SetLanguage`, `ianseo-debug-session`, `Ianseo-debug-mode`).
+- Method GET/HEAD (else 405), then `sp_valid_query()` on the **raw** `QUERY_STRING`: exactly `c=[A-Za-z0-9_.-]{1,8}`, optionally followed by the fixed `&f=compact` (else 400). Checked before IANSEO's `config.php`, whose `Globals.inc.php`/`config.php` react to GET parameters (`SetLanguage`, `ianseo-debug-session`, `Ianseo-debug-mode`).
 - The code is only used in `sp_tour_id()` (StrSafe_DB); everything after uses the integer `ToId`. Never put the code in a path, header or the image.
 - 404 with an empty body for unknown, unpublished, or no GD; a code refused by `sp_valid_code()` still runs the same lookup with ''.
 - No PHP session: `SpNoSession` handler + `session.use_cookies=0` before `config.php`, then `Set-Cookie`/`Pragma`/`Expires`/`Last-Modified` removed (IANSEO sends no-cache headers). No `JsonOut()` / CORS.
@@ -59,7 +59,7 @@ In `SessionPlaces/`:
 ## Cache
 
 - Folder `sys_get_temp_dir()/ianseo-sessionplaces-<sha1(module dir)>`, mode 0700; refused if it is a link, not writable or not owned by the web server user (then the image is drawn every time).
-- File `<ToId>-<hash>.png`, written to a temp file then renamed, under `flock` on `<ToId>.lock`; other files of the competition removed after a new drawing.
+- File `<ToId>-<format>-<hash>.png`, written to a temp file then renamed, under `flock` on `<ToId>.lock`; other files of the competition in the same format removed after a new drawing.
 - `ETag: W/"sp-<hash>"`, `Cache-Control: public, max-age=60, must-revalidate`; `If-None-Match` → 304 without drawing nor reading the file.
 
 ## Persistence
