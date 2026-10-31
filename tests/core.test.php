@@ -69,12 +69,19 @@ check('like regex chars are not wildcards', sp_like('CXS', 'C.S'), false);
 check('like escaped percent', sp_like('A%', 'A\\%'), true);
 check('like escaped percent literal', sp_like('AB', 'A\\%'), false);
 
-check('label one distance', sp_distance_label(array('70m', '70m')), '70m');
-check('label two distances', sp_distance_label(array('50m', '50m', '30m', '30m')), '50m / 30m');
+check('label one distance', sp_distance_label(array('70m', '70m')), '70 m');
+check('label two distances', sp_distance_label(array('50m', '50m', '30m', '30m')), '50 m / 30 m');
 check('label empty', sp_distance_label(array('', '')), '');
 check('label from metres', sp_distance_label(array('70m-1', '70m-2'), array(70, 70)), '70 m');
 check('label from metres, two distances', sp_distance_label(array('a', 'b', 'c'), array(50, 30, 30)), '50 m / 30 m');
-check('label IANSEO suffixes removed', sp_distance_label(array('70m-1', '70m-2'), array(0, 0)), '70m');
+check('label IANSEO suffixes removed', sp_distance_label(array('70m-1', '70m-2'), array(0, 0)), '70 m');
+check('label name in metres = metres (FECL without TdDist)', sp_distance_label(array('18m-1', '18m-2'), array(0, 0)), sp_distance_label(array('18m-1', '18m-2'), array(18, 18)));
+check('label name "18 M"', sp_distance_label(array('18 M')), '18 m');
+check('label other name kept', sp_distance_label(array('dist-1', 'dist-2'), array(0, 0)), 'dist');
+check('label name 0m kept', sp_distance_label(array('0m')), '0m');
+check('label name wins over stale metres (renamed in IANSEO)', sp_distance_label(array('25m-1', '25m-2'), array(18, 18)), '25 m');
+check('label other name gives the metres', sp_distance_label(array('dist-1', 'dist-2'), array(18, 18)), '18 m');
+check('label IANSEO default name gives the metres', sp_distance_label(array('.1.'), array(30)), '30 m');
 
 $groups = sp_distance_groups(array(
 	array('pattern' => 'CL%', 'names' => array('70m', '70m')),
@@ -83,10 +90,10 @@ $groups = sp_distance_groups(array(
 	array('pattern' => 'XX%', 'names' => array('', '')),
 ));
 check('groups without distances left out', count($groups), 3);
-check('labels distinct', sp_distance_labels($groups), array('70m', '50m'));
-check('distance for CL', sp_distance_for('CL', 'S1H', $groups), '70m');
-check('distance for BB', sp_distance_for('BB', 'S1F', $groups), '50m');
-check('distance trims', sp_distance_for('CO ', ' S1H', $groups), '50m');
+check('labels distinct', sp_distance_labels($groups), array('70 m', '50 m'));
+check('distance for CL', sp_distance_for('CL', 'S1H', $groups), '70 m');
+check('distance for BB', sp_distance_for('BB', 'S1F', $groups), '50 m');
+check('distance trims', sp_distance_for('CO ', ' S1H', $groups), '50 m');
 check('distance unknown', sp_distance_for('TL', 'S1H', $groups), null);
 
 // ---------- settings ----------
@@ -118,7 +125,7 @@ $usage = array(
 );
 $p = sp_places($sessions, $usage, array(
 	'quotas' => array(2 => array('CO' => 5, 'BB' => 8)), 'divNames' => array('CO' => 'Arc à poulies', 'BB' => 'Bare Bow'),
-	'groups' => $groups, 'targets' => array(2 => array('70m' => 4, '50m' => 5)), 'hidden' => array(), 'divisions' => true,
+	'groups' => $groups, 'targets' => array(2 => array('70 m' => 4, '50 m' => 5)), 'hidden' => array(), 'divisions' => true,
 ));
 check('sessions without places left out', array_column($p, 'order'), array(1, 2));
 check('full session never negative', array($p[0]['used'], $p[0]['free']), array(5, 0));
@@ -128,8 +135,8 @@ check('quota per bow type', $p[1]['divisions'], array(
 	array('id' => 'BB', 'name' => 'Bare Bow', 'quota' => 8, 'used' => 4, 'free' => 4),
 ));
 check('places per distance', $p[1]['distances'], array(
-	array('label' => '70m', 'targets' => 4, 'capacity' => 16, 'used' => 10, 'free' => 6),
-	array('label' => '50m', 'targets' => 5, 'capacity' => 20, 'used' => 9, 'free' => 11),
+	array('label' => '70 m', 'targets' => 4, 'capacity' => 16, 'used' => 10, 'free' => 6),
+	array('label' => '50 m', 'targets' => 5, 'capacity' => 20, 'used' => 9, 'free' => 11),
 ));
 check('no distances without targets', $p[0]['distances'], array());
 $p2 = sp_places($sessions, $usage, array('quotas' => array(2 => array('CO' => 5)), 'groups' => $groups, 'hidden' => array(1), 'divisions' => false));

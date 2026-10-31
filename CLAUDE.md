@@ -32,7 +32,7 @@ In `SessionPlaces/`:
 - `core.php`: pure logic, tested by `tests/core.test.php`:
   - `sp_valid_query()` / `sp_valid_code()` / `sp_format()`: the public parameters (see Security);
   - `sp_like()`: MySQL LIKE in PHP, to match `div+class` with `TournamentDistances.TdClasses` (first match, table order), also for SelfRegistration rows (module table: no SQL join on string columns, collations may differ);
-  - `sp_distance_label()`: label from the metres `TdDist1…` ("70 m"), else from the names without IANSEO's `-1`/`-2` suffixes. FR rules name distances `70m-1`, `70m-2`;
+  - `sp_distance_label()`: label from the names first, without IANSEO's `-1`/`-2` suffixes ("70m-1" → "70 m"), else from the metres `TdDist1…`, else the name. IANSEO never reads `TdDist`: its Competition › Distances page saves only the names, so the metres are 0 on rows added there (`FECL%` in 26_18m_2) and stale on rows renamed there;
   - `sp_clean_settings()`: settings cleaned against existing sessions and distance labels, for reading and saving;
   - `sp_places()`: capacity `SesTar4Session × SesAth4Target`; per distance `targets × SesAth4Target`; free never negative;
   - `sp_fingerprint()`, `sp_etag()`, `sp_etag_matches()`; image texts, dates (no intl), `sp_wrap()`.

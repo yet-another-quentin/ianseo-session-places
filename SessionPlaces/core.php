@@ -56,14 +56,19 @@ function sp_like($subject, $pattern) {
 }
 
 /**
- * Label of a series of distances ("70 m", "50 m / 30 m"): distinct distances in shooting order, from the metres
- * (TdDist1…) or, when they are not set, from the names without IANSEO's "-1", "-2" suffixes ("70m-1" → "70m").
+ * Label of a series of distances ("70 m", "50 m / 30 m"): distinct distances in shooting order. The names come first:
+ * IANSEO shows them everywhere, and its Competition › Distances page saves only them, so the metres (TdDist1…) are 0
+ * on rows added there (FECL% in a FR indoor competition) and stale on rows renamed there. Without IANSEO's "-1", "-2"
+ * suffixes, a name in metres ("70m-1", "18 M") gives "70 m"; any other name ("dist-1") gives the metres when set, else
+ * the name itself.
  */
 function sp_distance_label($names, $metres = array()) {
 	$out = array();
 	foreach ($names as $i => $n) {
-		$m = intval($metres[$i] ?? 0);
-		$n = $m > 0 ? $m . ' m' : sp_clean_text(preg_replace('/\s*-\s*\d+$/', '', (string)$n), 12);
+		$n = trim(preg_replace('/\s*-\s*\d+$/', '', (string)$n));
+		$m = preg_match('/^(\d+)\s*m$/iD', $n, $mm) ? intval($mm[1]) : 0;
+		if ($m <= 0) $m = intval($metres[$i] ?? 0);
+		$n = $m > 0 ? $m . ' m' : sp_clean_text($n, 12);
 		if ($n !== '' and !in_array($n, $out, true)) $out[] = $n;
 	}
 	return implode(' / ', $out);
