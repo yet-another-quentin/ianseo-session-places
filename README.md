@@ -58,6 +58,27 @@ location = /Modules/Custom/SessionPlaces/image.php {
 
 **Check** from a private window: `https://your-site/Modules/Custom/SessionPlaces/image.php?c=CODE` shows the image, `…/SessionPlaces/index.php` asks for the password, and `…/image.php?c=CODE&x=1` answers 400.
 
+### Short address
+
+Instead of `…/Modules/Custom/SessionPlaces/image.php?c=SP26&f=compact`, the image can be served as `https://inscription.example.org/SP26/compact/places.png` (or `…/SP26/full/places.png`), for instance on the sub-domain of [SelfRegistration's short address](https://github.com/yet-another-quentin/ianseo-self-registration#short-address-for-the-form). In **Proxy host › Advanced** of that sub-domain, add **before** `location ~ . { return 404; }` (nginx tries regex locations in order):
+
+```nginx
+# Image of the places left: /CODE/full/places.png or /CODE/compact/places.png
+location ~ ^/(?<sp_code>[A-Za-z0-9][A-Za-z0-9_.-]*)/(?<sp_format>full|compact)/places\.png$ {
+    set $sp_query c=$sp_code;
+    if ($sp_format = compact) { set $sp_query c=$sp_code&f=compact; }
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $x_forwarded_proto;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_pass $forward_scheme://$server:$port/Modules/Custom/SessionPlaces/image.php?$sp_query;
+}
+```
+
+- Named captures: nginx does not know `$2` inside `if`.
+- Only `image.php` is reached, with a query it builds itself: the query string of the short address is dropped (`?v=2` changes nothing), and `image.php` still checks the code.
+- **Check**: `…/SP26/compact/places.png` shows the image, `…/SP26/other/places.png` answers 404.
+
 ### What the public address accepts
 
 - `GET` or `HEAD` only (otherwise 405), and exactly `?c=<code>` or `?c=<code>&f=compact`: 1 to 8 letters, digits, `_`, `-` or `.`, checked on the raw query string **before IANSEO starts**. Anything else (other parameter or value, other order, repeated parameter, array, encoded character) gets 400, so IANSEO's own URL hooks (language, debug…) can never be reached through it.
@@ -127,6 +148,12 @@ Les navigateurs gardent l'image une minute, puis vérifient si elle a changé : 
 L'image est le seul fichier public du module. Si IANSEO est protégé par un reverse proxy (comme recommandé pour SelfRegistration), n'ouvrir que `image.php` : bloc `location = /Modules/Custom/SessionPlaces/image.php` dans l'onglet **Advanced** du proxy host (configuration complète dans la partie anglaise).
 
 **Vérifier** en navigation privée que l'image s'affiche, que `…/SessionPlaces/index.php` demande le mot de passe et que `…/image.php?c=CODE&x=1` répond 400.
+
+### Adresse courte
+
+Au lieu de `…/Modules/Custom/SessionPlaces/image.php?c=SP26&f=compact`, l'image peut être servie en `https://inscription.example.org/SP26/compact/places.png` (ou `…/SP26/full/places.png`), par exemple sur le sous-domaine de l'adresse courte de SelfRegistration. Ajouter le bloc `location` de la partie anglaise dans l'onglet **Advanced** de ce proxy host, **avant** `location ~ . { return 404; }` : nginx teste les `location` regex dans l'ordre. La query string de l'adresse courte est ignorée et `image.php` vérifie toujours le code.
+
+**Vérifier** que `…/SP26/compact/places.png` affiche l'image et que `…/SP26/other/places.png` répond 404.
 
 ### Cache
 
