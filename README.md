@@ -94,7 +94,7 @@ location ~ ^/(?<sp_code>[A-Za-z0-9][A-Za-z0-9_.-]*)/(?<sp_format>full|compact)/p
 ## Development
 
 ```sh
-node --test tests/*.test.js     # translations, nightly versioning
+node --test tests/*.test.js     # translations, latest build versioning
 php tests/core.test.php         # public parameter, places, distances, fingerprint and ETag, dates, line breaks
 
 # Test IANSEO on http://localhost:8091/ (IANSEO_DIR = a COPY of the IANSEO sources)
@@ -105,7 +105,7 @@ cd dev && IANSEO_DIR=/path/to/ianseo-copy docker compose up -d --build && IANSEO
 
 **Releases**:
 - **Stable**: push a `vX.Y.Z` tag.
-- **Nightly**: built every night from `main`.
+- **Latest**: built on every push to `main` (pre-release `latest`, "latest" update channel).
 - Administrators update the module in one click from its page.
 
 ---

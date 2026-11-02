@@ -327,7 +327,8 @@ function sp_png($data) {
 // ---------- admin page context ----------
 
 function sp_channel() {
-	return sp_param_get(0, 'channel', 'stable') === 'nightly' ? 'nightly' : 'stable';
+	// "nightly" is the former name of the latest channel
+	return in_array(sp_param_get(0, 'channel', 'stable'), array('latest', 'nightly'), true) ? 'latest' : 'stable';
 }
 
 // Absolute URL of a file of this module, from the current request (admin pages are in the module folder).
@@ -390,12 +391,12 @@ function sp_http($url, $accept = '*/*', $timeout = 60) {
 
 /**
  * Is $latest an update for $current on this channel?
- * Stable: strictly newer version. Nightly: any different build, unless the installed version is a newer stable
- * (nightly versions are "X.Y.(Z+1)-nightly.DATE.SHA", which version_compare() puts before "X.Y.(Z+1)").
+ * Stable: strictly newer version. Latest (build of main): any different build, unless the installed version is a newer stable
+ * (builds of main are "X.Y.(Z+1)-latest.STAMP.SHA", formerly "-nightly.", which version_compare() puts before "X.Y.(Z+1)").
  */
 function sp_is_update($channel, $latest, $current) {
 	if ($latest === '' or $latest === $current) return false;
-	if ($channel === 'nightly') return strpos($current, '-nightly') !== false or version_compare($latest, $current, '>');
+	if ($channel === 'latest') return preg_match('/-(latest|nightly)\./', $current) or version_compare($latest, $current, '>');
 	return version_compare($latest, $current, '>');
 }
 
@@ -413,7 +414,7 @@ function sp_update_check($force = false) {
 	} else {
 		// `api` (optional in version.json) allows testing against a fake release server
 		$api = rtrim($info['api'] ?? 'https://api.github.com', '/');
-		$path = $channel === 'nightly' ? '/releases/tags/nightly' : '/releases/latest';
+		$path = $channel === 'latest' ? '/releases/tags/latest' : '/releases/latest';
 		list($code, $body, $err) = sp_http($api . '/repos/' . $info['repo'] . $path, 'application/vnd.github+json');
 		$j = $err ? null : json_decode($body, true);
 		if ($code == 404) {
@@ -426,8 +427,8 @@ function sp_update_check($force = false) {
 			foreach ((array)($j['assets'] ?? array()) as $a) {
 				if (($a['name'] ?? '') === $info['asset']) $res['asset'] = $a['browser_download_url'];
 			}
-			// the nightly tag is fixed ("nightly"): its version is in the release name
-			$res['latest'] = $channel === 'nightly' ? trim((string)($j['name'] ?? '')) : ltrim($j['tag_name'], 'vV');
+			// the latest tag is fixed ("latest"): its version is in the release name
+			$res['latest'] = $channel === 'latest' ? trim((string)($j['name'] ?? '')) : ltrim($j['tag_name'], 'vV');
 		}
 	}
 	$res['available'] = ($res['asset'] !== '' and sp_is_update($channel, $res['latest'], $info['version']));

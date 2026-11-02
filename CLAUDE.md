@@ -7,7 +7,7 @@ IANSEO module (archery competition management software) that publishes a PNG of 
 ## Commands
 
 ```sh
-node --test tests/*.test.js          # translations (same keys fr/en, image texts too), nightly versioning
+node --test tests/*.test.js          # translations (same keys fr/en, image texts too), latest build versioning
 php tests/core.test.php              # pure logic of core.php (no IANSEO, no database)
 for f in SessionPlaces/*.php; do php -l "$f"; done
 ```
@@ -71,8 +71,8 @@ In `SessionPlaces/`:
 ## Releases and self-update
 
 Same as `../ianseo-self-registration`:
-- a `vX.Y.Z` tag runs `release.yml` (stable "latest" release);
-- `nightly.yml` publishes the `nightly` pre-release when `main` changed;
+- a `vX.Y.Z` tag runs `release.yml` (stable release, marked Latest on GitHub, read through `/releases/latest`);
+- `latest.yml` publishes the `latest` pre-release on every push to `main` (version `X.Y.(Z+1)-latest.<yyyymmddhhmm>.<sha>`, `scripts/latest-version.js`); update channels `stable` / `latest` (`nightly`, the former name, is read as `latest`);
 - `version.json` stays `0.0.0-dev` in the repo;
 - the archive must contain only `SessionPlaces/…` with `SessionPlaces/version.json`;
 - the GitHub repo (`yet-another-quentin/ianseo-session-places`) must be public.

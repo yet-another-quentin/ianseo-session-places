@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const I = require('../SessionPlaces/i18n.js');
-const { nightlyVersion } = require('../scripts/nightly-version.js');
+const { latestVersion } = require('../scripts/latest-version.js');
 
 const read = f => fs.readFileSync(path.join(__dirname, '../SessionPlaces', f), 'utf8');
 
@@ -21,7 +21,7 @@ test('every message key used by the admin page exists', () => {
 });
 
 test('keys built at runtime exist', () => {
-  const keys = ['image.lang.fr', 'image.lang.en', 'update.channel.stable', 'update.channel.nightly', 'image.on', 'image.off'];
+  const keys = ['image.lang.fr', 'image.lang.en', 'update.channel.stable', 'update.channel.latest', 'image.on', 'image.off'];
   assert.deepEqual(keys.filter(k => !(k in I.DICTS.en)), []);
 });
 
@@ -44,7 +44,7 @@ test('placeholders are replaced, missing keys fall back to the key', () => {
   assert.equal(fr.t('nope.key'), 'nope.key');
 });
 
-test('nightly version follows the last stable tag', () => {
-  assert.equal(nightlyVersion('v1.2.3', '20261004', 'abc1234'), '1.2.4-nightly.20261004.abc1234');
-  assert.equal(nightlyVersion('', '20261004', 'abc1234'), '0.0.1-nightly.20261004.abc1234');
+test('latest version follows the last stable tag', () => {
+  assert.equal(latestVersion('v1.2.3', '202610041530', 'abc1234'), '1.2.4-latest.202610041530.abc1234');
+  assert.equal(latestVersion('', '202610041530', 'abc1234'), '0.0.1-latest.202610041530.abc1234');
 });

@@ -57,7 +57,7 @@
     'update.checkFailed': 'check failed ({error})',
     'update.channel': 'Update channel',
     'update.channel.stable': 'stable',
-    'update.channel.nightly': 'nightly',
+    'update.channel.latest': 'latest',
   };
 
   const fr = {
@@ -110,7 +110,7 @@
     'update.checkFailed': 'vérification impossible ({error})',
     'update.channel': 'Canal de mise à jour',
     'update.channel.stable': 'stable',
-    'update.channel.nightly': 'nightly',
+    'update.channel.latest': 'latest',
   };
 
   const DICTS = { en, fr };

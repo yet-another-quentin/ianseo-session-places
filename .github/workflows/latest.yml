@@ -1,0 +1,48 @@
+# Build of main on every push, published as the "latest" pre-release (moving tag).
+# Installed modules on the latest channel offer it as an update; the release name carries the version.
+name: latest
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: latest
+
+jobs:
+  latest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tests
+        run: |
+          for f in SessionPlaces/*.php tests/*.php; do php -l "$f" >/dev/null || exit 1; done
+          php tests/core.test.php
+          node --test tests/*.test.js
+
+      - name: Version
+        id: version
+        run: |
+          tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)
+          v=$(node scripts/latest-version.js "$tag" "$(date -u +%Y%m%d%H%M)" "$(git rev-parse --short=7 HEAD)")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          jq --arg v "$v" '.version = $v' SessionPlaces/version.json > version.tmp
+          mv version.tmp SessionPlaces/version.json
+
+      - name: Archive
+        run: zip -r SessionPlaces.zip SessionPlaces -x '*.DS_Store'
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest SessionPlaces.zip --prerelease --latest=false --target "$(git rev-parse HEAD)" \
+            --title "$VERSION" --notes "Build of main ($(git rev-parse --short=7 HEAD)). Not for competitions: use a stable release."

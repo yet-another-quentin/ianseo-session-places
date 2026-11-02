@@ -160,7 +160,7 @@
       const u = state.update;
       upd = `<span class="sp-upd">
         <label>${th('update.channel')} <select id="sp-channel" ${state.busy ? 'disabled' : ''}>
-          ${['stable', 'nightly'].map(c => `<option value="${c}" ${state.channel === c ? 'selected' : ''}>${th('update.channel.' + c)}</option>`).join('')}
+          ${['stable', 'latest'].map(c => `<option value="${c}" ${state.channel === c ? 'selected' : ''}>${th('update.channel.' + c)}</option>`).join('')}
         </select></label>
         ${u && u.available ? `<span>${th('update.available', { latest: u.latest, current: ctx.version })}</span>
           <button type="button" id="sp-update" ${state.busy ? 'disabled' : ''}>${th('update.install')}</button>` : ''}

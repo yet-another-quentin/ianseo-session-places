@@ -38,7 +38,7 @@ try {
 
 		case 'update-channel':
 			sp_require_admin();
-			if (!in_array($in['channel'] ?? '', array('stable', 'nightly'), true)) JsonOut(array('error' => sp_t('channelInvalid')));
+			if (!in_array($in['channel'] ?? '', array('stable', 'latest'), true)) JsonOut(array('error' => sp_t('channelInvalid')));
 			sp_param_set(0, 'channel', $in['channel']);
 			JsonOut(array('ok' => true, 'channel' => $in['channel']));
 
